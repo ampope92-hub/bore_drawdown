@@ -6,7 +6,9 @@ from the start of continuous abstraction it deepens at a fixed rate. On top of t
 breathes with the estuary: the semidiurnal tide, period 12.4206 h, reaches it at a fraction of
 its range. The compliance logger samples every `--interval` hours, which is longer than half the
 tidal period, so what it records is the tide folded down to a slow swing. A short high-resolution
-file from commissioning is written too, with the tide visible as it is.
+file from commissioning is written too, with the tide visible as it is. Part way through each
+record the measuring point the readings are taken from moves off the casing top; the export is
+written as measured, and bore.json carries the stamp and the offset.
 
     gen_bore.py <out-dir> <key-dir> [--seed N] [--rate MM_PER_DAY] [--interval H] [--hidden]
 
@@ -49,6 +51,9 @@ def main():
         # so a reader who writes the principal lunar constituent into the source rather than
         # taking the period off the commissioning dump mis-folds the swing here.
         period_h = 12.9014
+        # The logger was re-hung on a new bracket part way through the record, 0.11 m above the
+        # casing top, between the morning and evening readings.
+        mp_moved, mp_offset = dt.datetime(2025, 5, 27, 11, 0, tzinfo=UTC), 0.11
     elif a.hidden:
         bore, start = "MW-14", dt.datetime(2025, 3, 2, 6, 0, tzinfo=UTC)
         pump_start = start + dt.timedelta(days=12)
@@ -56,6 +61,9 @@ def main():
         limit_mm_day, intake_m, horizon_days = 2.4, 7.10, 120
         phase = 0.2
         period_h = 11.8271
+        # The well-head lid was replaced one afternoon and the dips from the next morning on are
+        # taken from the notch on the new lid, 0.05 m above the casing top.
+        mp_moved, mp_offset = dt.datetime(2025, 3, 23, 14, 0, tzinfo=UTC), 0.05
     else:
         bore, start = "PB-07", dt.datetime(2025, 7, 20, 0, 0, tzinfo=UTC)
         pump_start = start + dt.timedelta(days=15)
@@ -63,6 +71,9 @@ def main():
         limit_mm_day, intake_m, horizon_days = 9.8, 7.80, 90
         phase = 1.8
         period_h = T_M2
+        # The well head was rebuilt in the middle of the record and the logger now hangs from the
+        # new cover plate, 0.07 m above the casing top, from a stamp between two readings.
+        mp_moved, mp_offset = dt.datetime(2025, 8, 12, 9, 0, tzinfo=UTC), 0.07
 
     # The contractor runs the 10 minute dump in the days before the compliance record opens, so a
     # tidal term read off it does not have to be carried across months to reach the abstraction.
@@ -81,13 +92,17 @@ def main():
     out = pathlib.Path(a.out_dir); out.mkdir(parents=True, exist_ok=True)
     kd = pathlib.Path(a.key_dir); kd.mkdir(parents=True, exist_ok=True)
 
-    # compliance logger
+    # compliance logger. The export is written as the logger measures it: from the moment the
+    # measuring point moved off the casing top every reading is the offset deeper than the depth
+    # below the casing top, which is the datum the licence and the regulator's own record are on.
+    # Nothing in the file is corrected for it; the correction is the return's job.
     n = int(span_days * 24 / a.interval) + 1
     with open(out / "levels.csv", "w") as fh:
         fh.write("timestamp,depth_m\n")
         for i in range(n):
             t = start + dt.timedelta(hours=i * a.interval)
-            fh.write(f"{t.strftime('%Y-%m-%dT%H:%M')},{depth(t):.3f}\n")
+            v = depth(t) + (mp_offset if t >= mp_moved else 0.0)
+            fh.write(f"{t.strftime('%Y-%m-%dT%H:%M')},{v:.3f}\n")
     # commissioning dump, 10 minute samples over three days, no abstraction
     with open(out / "commissioning_10min.csv", "w") as fh:
         fh.write("timestamp,depth_m\n")
@@ -99,7 +114,9 @@ def main():
     with open(out / "bore.json", "w") as fh:
         json.dump({"bore": bore, "abstraction_start": pump_start.strftime("%Y-%m-%dT%H:%M"),
                    "licence_limit_mm_per_day": limit_mm_day,
-                   "pump_intake_depth_m": intake_m, "projection_day": horizon_days}, fh, indent=1)
+                   "pump_intake_depth_m": intake_m, "projection_day": horizon_days,
+                   "measuring_point_moved_at": mp_moved.strftime("%Y-%m-%dT%H:%M"),
+                   "measuring_point_offset_m": mp_offset}, fh, indent=1)
         fh.write("\n")
 
     # the licence check as it was actually done: the contractor's 10 minute logger went back on the
@@ -134,7 +151,8 @@ def main():
         json.dump(key, fh, indent=1)
         fh.write("\n")
     print(f"{bore}: {n} samples every {a.interval} h from {start:%Y-%m-%d %H:%M}, abstraction from "
-          f"{pump_start:%Y-%m-%d %H:%M}, tide amplitude {amp} m, true rate {a.rate} mm/day; the check found "
+          f"{pump_start:%Y-%m-%d %H:%M}, tide amplitude {amp} m, true rate {a.rate} mm/day, measuring point "
+          f"moved {mp_offset} m at {mp_moved:%Y-%m-%d %H:%M}; the check found "
           f"{rate_checked:.2f} mm/day and {depth_check:.3f} m at day {horizon_days} (intake {intake_m}), within_licence={key['within_licence']}")
 
 

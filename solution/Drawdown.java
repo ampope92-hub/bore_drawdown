@@ -150,6 +150,12 @@ public class Drawdown {
         double limit = Double.parseDouble(jsonField(meta, "licence_limit_mm_per_day"));
         double intake = Double.parseDouble(jsonField(meta, "pump_intake_depth_m"));
         double horizon = Double.parseDouble(jsonField(meta, "projection_day"));
+        // The measuring point moved off the casing top part way through the record, and the export
+        // is written as measured from wherever the point was. The licence, the intake depth and the
+        // regulator's record are all depth below the casing top, so every reading taken from the
+        // stamp on is brought back onto that datum by the offset bore.json gives.
+        LocalDateTime moved = LocalDateTime.parse(jsonField(meta, "measuring_point_moved_at"));
+        double offset = Double.parseDouble(jsonField(meta, "measuring_point_offset_m"));
 
         // The tidal period, read off the commissioning dump: the period that best explains the
         // ten-minute samples taken before the pump went to work. The bore is on a semidiurnal
@@ -182,7 +188,7 @@ public class Drawdown {
         for (int i = 0; i < n; i++) {
             double w = 2 * Math.PI * hours(origin, s.get(i).t) / bestT;
             x[i][0] = 1; x[i][1] = pumpDays(s.get(i).t, pumpStart); x[i][2] = Math.cos(w); x[i][3] = Math.sin(w);
-            y[i] = s.get(i).depth;
+            y[i] = s.get(i).depth - (s.get(i).t.isBefore(moved) ? 0.0 : offset);
         }
         double[] b = leastSquares(x, y);
         // A day's figure is the mean of the level over that day, taken the way the regulator takes

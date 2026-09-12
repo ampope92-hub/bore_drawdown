@@ -5,8 +5,10 @@ Generates bores with gen_bore.py across seeds and tidal phases and scores, on ea
 agent is likely to take: a straight line through the readings taken during abstraction, which is
 how the previous return was done; the first and last readings of the period; and a line plus one
 sinusoid whose period is searched on the sampled series itself, which is the honest route without
-knowing the tide. The reference, which reads the period off the commissioning dump and fits the
-tide at the sample times, is scored beside them when a compiled class is given.
+knowing the tide; and the honest fit on the readings as written, with the measuring point move
+that bore.json records never applied. The reference, which reads the period off the commissioning
+dump, corrects the move and fits the tide at the sample times, is scored beside them when a
+compiled class is given.
 
     calibrate.py [--java-out DIR] [--seeds N]
 """
@@ -41,11 +43,18 @@ def lstsq(x, y):
     return b
 
 
-def load(d):
+def load(d, correct_move=True):
+    """The readings, brought back onto the casing top: the export is written as measured, and from
+    the stamp in bore.json the measuring point sits the offset above the casing top. With
+    correct_move off the readings are taken as written, which is the route that ignores the move."""
     with open(d / "levels.csv") as fh:
         rows = [(dt.datetime.fromisoformat(r["timestamp"]), float(r["depth_m"])) for r in csv.DictReader(fh)]
     with open(d / "bore.json") as fh:
         meta = json.load(fh)
+    if correct_move:
+        moved = dt.datetime.fromisoformat(meta["measuring_point_moved_at"])
+        off = meta["measuring_point_offset_m"]
+        rows = [(t, v - (off if t >= moved else 0.0)) for t, v in rows]
     return rows, meta
 
 
@@ -77,6 +86,12 @@ def routes(d):
     X = [[1, pdays[i], math.cos(2 * math.pi * hrs[i] / T_M2), math.sin(2 * math.pi * hrs[i] / T_M2)] for i in range(len(rows))]
     c = lstsq(X, y)
     out["line_plus_known_tide"] = (c[1] * 1000, c[0] + c[1] * (H + 0.5))
+    # The same fit on the readings as written, the measuring point move in bore.json never applied:
+    # the offset the later readings carry goes into the fit as a change of rate.
+    raw, _ = load(d, correct_move=False)
+    yr = [v for _, v in raw]
+    cr = lstsq(X, yr)
+    out["ignores_move"] = (cr[1] * 1000, cr[0] + cr[1] * (H + 0.5))
     # The tail-slope route: the same fit, but taking the rate from the trailing third of the
     # abstraction record instead of all of it, and carrying that rate out to the projection day.
     # The README now states the fall is steady for as long as abstraction runs, which is what

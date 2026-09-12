@@ -3,5 +3,7 @@
  "abstraction_start": "2025-03-14T06:00",
  "licence_limit_mm_per_day": 2.4,
  "pump_intake_depth_m": 7.1,
- "projection_day": 120
+ "projection_day": 120,
+ "measuring_point_moved_at": "2025-03-23T14:00",
+ "measuring_point_offset_m": 0.05
 }

@@ -2,8 +2,9 @@
 
 MW-22 sits on the eastern arm of the same wellfield, cut into the bank of the tidal creek itself
 and screened in the confined sand beneath the estuary clay. The confining layer passes the tide
-straight through, so this bore breathes with the creek far harder than any of the others. Every figure is depth to water below the top of the casing, in metres, positive
-downward, so a deeper water table is a larger number.
+straight through, so this bore breathes with the creek far harder than any of the others. Every figure is depth to water in metres, positive
+downward, so a deeper water table is a larger number. The licence, the pump intake depth and the
+regulator's own record are all depth below the top of the casing.
 
 ## What the readings carry
 
@@ -29,6 +30,12 @@ The compliance record. `timestamp` is local standard time, `depth_m` to the mill
 bore records twice a day through the abstraction period, and it was started on the afternoon shift,
 so the record runs from an evening reading and stops on a morning one.
 
+On 27 May the logger was re-hung on the new bracket, 0.11 m above the casing top, between the
+morning and evening readings. Until then it hung from the casing top. The export is written as the
+logger measures it, so every reading from 2025-05-27T11:00 on is 0.11 m deeper than the depth below
+the casing top at that moment, and nothing in this file has been corrected for it. bore.json carries
+the stamp and the offset as `measuring_point_moved_at` and `measuring_point_offset_m`.
+
 ## commissioning_10min.csv
 
 Three days from the commissioning check run in the week before this record opens, at the 10 minute
@@ -40,7 +47,7 @@ their own datums.
 
 ## bore.json
 
-The licence settings for this abstraction period.
+The licence settings for this abstraction period, and where the readings are taken from.
 
 | key | meaning |
 |---|---|
@@ -49,6 +56,8 @@ The licence settings for this abstraction period.
 | `licence_limit_mm_per_day` | the maximum drawdown rate the licence allows, averaged over the abstraction period |
 | `pump_intake_depth_m` | depth of the pump intake below the casing top |
 | `projection_day` | the day of abstraction for which the licence asks the projected depth to water, counted as days elapsed from `abstraction_start`, so 90 means 90 days after abstraction began |
+| `measuring_point_moved_at` | when the point the readings are taken from moved off the casing top, a stamp that falls between two readings |
+| `measuring_point_offset_m` | how far above the casing top that point sits from the stamp on, so every reading from then on is that much deeper than the depth below the casing top at the same moment |
 
 ## How the last return was done
 

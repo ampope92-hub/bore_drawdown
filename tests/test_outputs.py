@@ -1,12 +1,12 @@
 """Verifier for the bore's daily levels and licence projection.
 
 test.sh compiles the agent's Java itself, runs the class once on the export that shipped and once
-on another bore's export it has never seen, and captures each drawdown.json root-only. This
+on each of two other bores' exports it has never seen, and captures each report root-only. This
 module only reads those captures and the keys under /opt, which are what the licence check's own
 10 minute logger recorded: a mean for every day of the abstraction period and for the day the
 licence names. It never runs agent code.
 
-Every bar here is stated in instruction.md, and the same bars apply to both runs.
+Every bar here is stated in instruction.md, and the same bars apply to all three runs.
 """
 import csv
 import datetime as dt
@@ -34,10 +34,10 @@ DAILY_BAR_M = 0.03
 DEPTH_BAR_M = 0.10
 
 SHIPPED_SHA = {
-    "levels.csv": "661e53dd0b6e92907365d2cf51f7978883fbdade17ca8f13d623b96a73b63e8b",
+    "levels.csv": "17b5b2c397326e440c69f78f1be90c6abf16668103ca8cb8308114ac18ca8f70",
     "commissioning_10min.csv": "1c604aabe3974c14d0897c377fea80cf0afdd538d1e5a18df06f477e28719298",
-    "bore.json": "f84b994a6f95447e59f6b53064a77bde0daab52c6ec0a89b14b8de9d011a3c50",
-    "README.md": "83f87833a97db857d1831ebbb3cb439c4d19b4005d106783d09edc783764ca64",
+    "bore.json": "dd681b24bbbd3a1834c3f7b67e20526fbec52040083628d6f18dd4a7dab8a013",
+    "README.md": "9cdc0a57ef3ecf0455aab35242a8f23ab5183fc2b119a3202ab9b5fee8e4f67f",
 }
 
 # Each key beside the export it was computed from, for the checks that read the licence settings.
@@ -94,7 +94,7 @@ def _number(v):
 
 
 def test_shipped_export_unmodified():
-    """The three files in /app/data are byte-identical to what shipped."""
+    """The four files in /app/data are byte-identical to what shipped."""
     for name, sha in SHIPPED_SHA.items():
         assert _sha(SHIPPED_DATA / name) == sha, f"{name} was altered"
 
