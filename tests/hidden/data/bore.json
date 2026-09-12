@@ -1,0 +1,7 @@
+{
+ "bore": "MW-14",
+ "abstraction_start": "2025-03-14T06:00",
+ "licence_limit_mm_per_day": 2.4,
+ "pump_intake_depth_m": 7.1,
+ "projection_day": 120
+}

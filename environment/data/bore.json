@@ -1,0 +1,7 @@
+{
+ "bore": "PB-07",
+ "abstraction_start": "2025-08-04T00:00",
+ "licence_limit_mm_per_day": 9.8,
+ "pump_intake_depth_m": 7.8,
+ "projection_day": 90
+}
