@@ -22,7 +22,7 @@
   "2025-06-05": 6.8978
  },
  "projected_depth_m": 7.3524,
- "within_licence": false,
+ "within_licence": true,
  "drawdown_mm_per_day": 3.577,
  "tidal_period_h": 12.9014
 }

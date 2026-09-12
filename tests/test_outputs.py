@@ -36,7 +36,7 @@ DEPTH_BAR_M = 0.10
 SHIPPED_SHA = {
     "levels.csv": "17b5b2c397326e440c69f78f1be90c6abf16668103ca8cb8308114ac18ca8f70",
     "commissioning_10min.csv": "1c604aabe3974c14d0897c377fea80cf0afdd538d1e5a18df06f477e28719298",
-    "bore.json": "dd681b24bbbd3a1834c3f7b67e20526fbec52040083628d6f18dd4a7dab8a013",
+    "bore.json": "8a0ca4a9bf02b78957dd3c2f679c67b986922c647915cc76e0f5c97e9a1c704c",
     "README.md": "9cdc0a57ef3ecf0455aab35242a8f23ab5183fc2b119a3202ab9b5fee8e4f67f",
 }
 
@@ -153,20 +153,39 @@ def test_projected_depth(run_path, key_path):
 
 @pytest.mark.parametrize("run_path,key_path", RUNS)
 def test_verdict(run_path, key_path):
-    """The licence verdict agrees with the check."""
-    got = _load(run_path)["within_licence"]
-    truth = _key(key_path)["within_licence"]
-    assert got == truth, (
-        f"{run_path.name}: within_licence is {got}, the check found the bore "
-        f"{'inside' if truth else 'outside'} its licence"
+    """within_licence follows the licence rule applied to this report's own rate and depth: at or
+    under licence_limit_mm_per_day, and strictly shallower than pump_intake_depth_m, both read
+    from this bore's own bore.json (instruction.md). The check is graded on the run's own two
+    numbers, not against a separately fitted figure, so a fit that lands fractionally to one side
+    of a limit through nothing but ordinary estimation error is never penalized here; only a
+    report whose own stated verdict disagrees with its own stated rate and depth is. The shipped
+    bore's licence_limit_mm_per_day and the third bore's pump_intake_depth_m are each pinned to
+    the reference's own reported rate and projected depth (see gen_bore.py), so on those two runs
+    the rate clause and the depth clause respectively sit exactly at the limit, which is the only
+    way to tell an inclusive comparison from a strict one."""
+    r = _load(run_path)
+    with open(KEY_TO_DATA[key_path] / "bore.json") as fh:
+        bore = json.load(fh)
+    expected = r["drawdown_mm_per_day"] <= bore["licence_limit_mm_per_day"] and \
+        r["projected_depth_m"] < bore["pump_intake_depth_m"]
+    assert r["within_licence"] == expected, (
+        f"{run_path.name}: within_licence is {r['within_licence']}, but its own rate "
+        f"{r['drawdown_mm_per_day']:.4f} against the licence limit {bore['licence_limit_mm_per_day']} "
+        f"and its own projected depth {r['projected_depth_m']:.3f} against the pump intake "
+        f"{bore['pump_intake_depth_m']} give {expected} under the rule instruction.md states"
     )
 
 
-# The margins the instruction promises. Both licence clauses compare a figure the reader has to
-# recover from an aliased record, so a bore sitting exactly on either limit would have its verdict
-# decided by ordinary estimation error rather than by the comparison, and the honest routes are
-# 1.4 mm/day and 0.09 m out at worst. Every bore is kept clear of both limits instead, which is
-# what makes the inclusive rate comparison and the strict intake comparison never decisive.
+# Both licence clauses compare a figure the reader has to recover from an aliased record, where
+# the honest routes run 1.4 mm/day and 0.09 m out at worst, so grading the verdict against a
+# separately fitted "true" rate would let ordinary estimation error decide it for a bore sitting
+# on a limit. test_verdict above avoids that by checking each run's own within_licence against
+# the licence rule applied to that same run's own reported rate and depth, so nothing but a
+# report whose own verdict contradicts its own numbers can fail it. That self-check is also the
+# only way to exercise the equality branch of each clause for real: the shipped bore's
+# licence_limit_mm_per_day and the third bore's pump_intake_depth_m are pinned to the reference's
+# own reported figures, so an inclusive rate comparison written as strict, or a strict intake
+# comparison written as inclusive, changes the verdict there.
 # How far the reported tidal period may sit from the one the verifier reads off the same
 # commissioning dump. Two independent fits of that dump agree to 0.0006 h on all three bores, so
 # this is about eighty times the disagreement between honest implementations, while still refusing
