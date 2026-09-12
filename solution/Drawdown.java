@@ -201,13 +201,7 @@ public class Drawdown {
         double depthStart = dayMean(b, bestT, origin, pumpStart, pumpStart);
         double projected = dayMean(b, bestT, origin, projDay, pumpStart);
         double rateMmDay = 1000.0 * (projected - depthStart) / horizon;
-        // The licence test is decided on the two figures this report actually carries, at the
-        // precision it carries them: rounding here and rounding in the printf below use the same
-        // digits, so the reported rate and depth are exactly what the licence clause was judged
-        // against, not a hidden extra digit of precision the report never shows.
-        double reportedRate = Math.round(rateMmDay * 10000.0) / 10000.0;
-        double reportedProjected = Math.round(projected * 1000.0) / 1000.0;
-        boolean within = reportedRate <= limit && reportedProjected < intake;
+        boolean within = rateMmDay <= limit && projected < intake;
 
         // One day's mean for every day of the abstraction period in the record.
         // The record runs to the last calendar day it holds a reading on, and the report covers every
@@ -227,7 +221,7 @@ public class Drawdown {
             out.printf(Locale.ROOT,
                     "{\"daily_depth_m\":{%s},\"projected_depth_m\":%.3f,\"drawdown_mm_per_day\":%.4f,"
                     + "\"tidal_period_h\":%.4f,\"within_licence\":%s}%n",
-                    daily, reportedProjected, reportedRate, bestT, within ? "true" : "false");
+                    daily, projected, rateMmDay, bestT, within ? "true" : "false");
         }
         System.err.printf(Locale.ROOT, "tidal period %.3f h, drawdown %.2f mm/day, projected %.3f m%n", bestT, rateMmDay, projected);
     }

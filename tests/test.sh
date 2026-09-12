@@ -151,7 +151,8 @@ run_once() {
   # directly: it runs under /opt/launch/VerifierLaunch, which installs a SecurityManager refusing
   # checkExec and checkLink before calling the collected class's main, so any attempt to start a
   # process or load a native library, of a payload shipped in the project or one written out at
-  # run time, throws instead of reaching the loader.
+  # run time, throws instead of reaching the loader. The manager also refuses the permission to
+  # replace or remove itself, so System.setSecurityManager(null) from the class throws too.
   find /app/out -mindepth 1 -exec chown root:root {} + 2>/dev/null || true
   find /app/out -type f -exec chmod go-rwx {} + 2>/dev/null || true
   # Everything the run could load out of the project is closed to the build user too, leaving only

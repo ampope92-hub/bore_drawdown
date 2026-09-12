@@ -13,9 +13,9 @@ RUN apt-get update \
 
 # The dynamic loader has to stay open for java itself, so the agent's class is run through this
 # small launcher rather than directly: it installs a SecurityManager that refuses process
-# execution and native library loading, then calls the collected class's main by reflection in
-# the same JVM. Compiled once, here, by root; never collected from the agent's project, so a
-# submission cannot shadow or disable it. Kept out of /tests, which is closed to the build user
+# execution and native library loading and refuses to be replaced or removed, then calls the
+# collected class's main by reflection in the same JVM. Compiled once, here, by root; never
+# collected from the agent's project, so a submission cannot shadow or disable it. Kept out of /tests, which is closed to the build user
 # at runtime, since the build user is exactly who has to read and run it.
 COPY VerifierLaunch.java /opt/launch/VerifierLaunch.java
 RUN cd /opt/launch && javac VerifierLaunch.java && rm -f VerifierLaunch.java && chmod -R go-w /opt/launch

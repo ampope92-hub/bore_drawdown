@@ -45,10 +45,7 @@ def main():
         bore, start = "MW-22", dt.datetime(2025, 5, 5, 18, 0, tzinfo=UTC)
         pump_start = start + dt.timedelta(days=12)
         span_days, amp, d0, noise = 30.5, 1.00, 6.85, 0.003
-        # pump_intake_depth_m is set to the reference's own reported projected depth on this
-        # export, at the precision the report carries it (see Drawdown.java), so this bore ties
-        # the intake exactly: the licence clause is decided by the strict half of the rule alone.
-        limit_mm_day, intake_m, horizon_days = 6.0, 7.360, 120
+        limit_mm_day, intake_m, horizon_days = 6.0, 6.90, 120
         phase = 1.9
         # A tidal creek rather than the open estuary: the bore breathes with a period of its own,
         # so a reader who writes the principal lunar constituent into the source rather than
@@ -71,10 +68,7 @@ def main():
         bore, start = "PB-07", dt.datetime(2025, 7, 20, 0, 0, tzinfo=UTC)
         pump_start = start + dt.timedelta(days=15)
         span_days, amp, d0, noise = 33.0, 0.22, 5.31, 0.003
-        # licence_limit_mm_per_day is set to the reference's own reported drawdown rate on this
-        # export, at the precision the report carries it (see Drawdown.java), so this bore ties
-        # the rate exactly: the licence clause is decided by the inclusive half of the rule alone.
-        limit_mm_day, intake_m, horizon_days = 8.1079, 7.80, 90
+        limit_mm_day, intake_m, horizon_days = 9.8, 7.80, 90
         phase = 1.8
         period_h = T_M2
         # The well head was rebuilt in the middle of the record and the logger now hangs from the
@@ -149,12 +143,6 @@ def main():
     while day.date() <= last.date():
         daily[day.strftime("%Y-%m-%d")] = round(day_mean(day), 4)
         day += dt.timedelta(days=1)
-    # within_licence here is the audit's own independent estimate, kept for reference; it is not
-    # what the verifier grades. tests/test_outputs.py checks each run's own within_licence against
-    # the licence rule applied to that same run's own reported rate and depth, since the shipped
-    # and third bores are deliberately built to sit exactly on the rate limit and the intake depth
-    # (see limit_mm_day and intake_m above), where the audit's own estimate, fitted from an
-    # independent noise draw, can land on the other side of the same limit.
     key = {"daily_depth_m": daily, "projected_depth_m": round(depth_check, 4),
            "within_licence": bool(rate_checked <= limit_mm_day and depth_check < intake_m),
            "drawdown_mm_per_day": round(rate_checked, 3),
