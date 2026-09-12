@@ -11,6 +11,15 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends default-jdk-headless \
     && rm -rf /var/lib/apt/lists/*
 
+# The dynamic loader has to stay open for java itself, so the agent's class is run through this
+# small launcher rather than directly: it installs a SecurityManager that refuses process
+# execution and native library loading, then calls the collected class's main by reflection in
+# the same JVM. Compiled once, here, by root; never collected from the agent's project, so a
+# submission cannot shadow or disable it. Kept out of /tests, which is closed to the build user
+# at runtime, since the build user is exactly who has to read and run it.
+COPY VerifierLaunch.java /opt/launch/VerifierLaunch.java
+RUN cd /opt/launch && javac VerifierLaunch.java && rm -f VerifierLaunch.java && chmod -R go-w /opt/launch
+
 # Verifier tooling, pinned. Nothing is installed at trial time.
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --require-hashes --no-deps -r /tmp/requirements.txt && rm -f /tmp/requirements.txt

@@ -37,6 +37,27 @@ chmod -R a-w /app/data
 cp -a /app/bore /opt/bore_pristine
 chmod -R go-w /opt/bore_pristine
 
+# Nothing under the collected project may be a binary payload: the instruction says only Java
+# source goes in, so anything that is not plain text is a file that was never going to compile
+# and has no reason to be there. A NUL byte is what a real binary carries and a text file never
+# does, so this catches a precompiled native solver whatever it is named or how it is disguised,
+# before it ever has the chance to sit somewhere the loader could later be handed it. Root does
+# this read itself, before the build user owns anything.
+/usr/local/bin/python3 -c '
+import os
+for root, _dirs, files in os.walk("/opt/bore_pristine"):
+    for name in files:
+        path = os.path.join(root, name)
+        try:
+            with open(path, "rb") as fh:
+                data = fh.read()
+        except OSError:
+            continue
+        if b"\x00" in data:
+            print("removing non-text file from the collected project:", path)
+            os.remove(path)
+'
+
 # The task states the tool lives in Java and that the box carries nothing past the standard
 # library. This image ships a Python interpreter because pytest scores the result with it, and
 # javac and the shells are here because the classes have to be built. All of them, and every other executable on the system paths, are closed to
@@ -123,7 +144,14 @@ run_once() {
   # whatever the agent's own box left there survives into this container; root takes ownership of
   # it before every run and shuts group and other out, so a native library planted there cannot be
   # read back by the user the class runs as. The directory itself keeps its own owner, so the run
-  # can still write the path it is asked for.
+  # can still write the path it is asked for. Reading is still not blocked by any of this on its
+  # own, since the loader only needs to map a file it can read, not one it can execute, and a file
+  # written into /app/out or /app/bore by the class itself during the run is not caught by the
+  # sweep at build time either. What actually stops the delegation is that the class does not run
+  # directly: it runs under /opt/launch/VerifierLaunch, which installs a SecurityManager refusing
+  # checkExec and checkLink before calling the collected class's main, so any attempt to start a
+  # process or load a native library, of a payload shipped in the project or one written out at
+  # run time, throws instead of reaching the loader.
   find /app/out -mindepth 1 -exec chown root:root {} + 2>/dev/null || true
   find /app/out -type f -exec chmod go-rwx {} + 2>/dev/null || true
   # Everything the run could load out of the project is closed to the build user too, leaving only
@@ -132,7 +160,7 @@ run_once() {
   close_tools
   setsid \
     setpriv --clear-groups --no-new-privs --reuid runner --regid runner \
-    env -C /app/bore HOME=/home/runner /usr/bin/java -cp /app/bore/out Drawdown "$data" "$asked" &
+    env -C /app/bore HOME=/home/runner /usr/bin/java -cp /opt/launch:/app/bore/out VerifierLaunch Drawdown "$data" "$asked" &
   pid=$!
   wait "$pid"
   echo "run exit status: $? ($data -> $asked)"
